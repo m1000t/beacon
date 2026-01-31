@@ -4,12 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Clearwater Ridge Clinical Operations</title>
+  <title>Beacon Clinical Operations</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --clinical-blue: #1e3a8a;
+      --beacon-blue: #0f172a;
+      --beacon-gold: #f59e0b;
       --clinical-bg: #f8fafc;
       --clinical-border: #e2e8f0;
       --text-main: #0f172a;
@@ -41,7 +42,7 @@
       font-size: 0.875rem;
     }
     .btn-clinical {
-      background-color: var(--clinical-blue);
+      background-color: var(--beacon-blue);
       color: white;
       font-weight: 600;
       padding: 0.5rem 1rem;
@@ -49,7 +50,7 @@
       transition: background-color 0.15s ease;
     }
     .btn-clinical:hover {
-      background-color: #1e40af;
+      background-color: #1e293b;
     }
     .senior-mode .btn-clinical {
       padding: 1rem 2rem;
@@ -57,6 +58,9 @@
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation: none !important; transition: none !important; }
+    }
+    .beacon-glow {
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
     }
   </style>
 <script type="importmap">

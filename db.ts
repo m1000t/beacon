@@ -12,6 +12,13 @@ interface ExtendedAppState extends AppState {
   };
 }
 
+// Utility for consistent local time display
+export const formatClinicalTime = (isoString: string) => {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "TBD";
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
 const ensureValidDate = (dateInput: any): string => {
   if (!dateInput) return new Date().toISOString();
   const d = new Date(dateInput);
@@ -31,23 +38,23 @@ const INITIAL_DATA: ExtendedAppState = {
     { id: 'p3', name: 'Evelyn Reed', dob: '1945-02-15', phone: '555-0106', address: '78 Pine St', riskLevel: RiskLevel.LOW, notes: 'Bilateral cataracts.' },
   ],
   appointments: [
-    { id: 'a1', patientId: 'p1', patientName: 'Margaret Smith', datetime: ensureValidDate('2025-05-20T09:00:00Z'), location: 'Clearwater Hospital', status: ApptStatus.SCHEDULED, provider: 'Dr. Heart' },
-    { id: 'a2', patientId: 'p2', patientName: 'Arthur Penhaligon', datetime: ensureValidDate('2025-05-18T14:30:00Z'), location: 'Clearwater Hospital', status: ApptStatus.CONFIRMED, provider: 'Dr. Diabetes' },
-    { id: 'a3', patientId: 'p1', patientName: 'Margaret Smith', datetime: ensureValidDate('2025-05-15T10:00:00Z'), location: 'Clearwater Hospital', status: ApptStatus.MISSED, provider: 'PT Jane' },
+    { id: 'a1', patientId: 'p1', patientName: 'Margaret Smith', datetime: ensureValidDate('2025-05-20T09:00:00Z'), location: 'Beacon Medical Center', status: ApptStatus.SCHEDULED, provider: 'Dr. Heart' },
+    { id: 'a2', patientId: 'p2', patientName: 'Arthur Penhaligon', datetime: ensureValidDate('2025-05-18T14:30:00Z'), location: 'Beacon Medical Center', status: ApptStatus.CONFIRMED, provider: 'Dr. Diabetes' },
+    { id: 'a3', patientId: 'p1', patientName: 'Margaret Smith', datetime: ensureValidDate('2025-05-15T10:00:00Z'), location: 'Beacon Medical Center', status: ApptStatus.MISSED, provider: 'PT Jane' },
   ],
   transportRequests: [
-    { id: 't1', patientId: 'p1', appointmentId: 'a1', pickupLocation: '123 Ridge Rd', destination: 'Clearwater Hospital', scheduledTime: ensureValidDate('2025-05-20T08:15:00Z'), status: TransportStatus.REQUESTED },
-    { id: 't2', patientId: 'p2', appointmentId: 'a2', pickupLocation: '45 Oak Ave', destination: 'Clearwater Hospital', scheduledTime: ensureValidDate('2025-05-18T13:45:00Z'), status: TransportStatus.ASSIGNED, driverId: 'u3', driverName: 'Bill Driver' },
+    { id: 't1', patientId: 'p1', appointmentId: 'a1', pickupLocation: '123 Ridge Rd', destination: 'Beacon Medical Center', scheduledTime: ensureValidDate('2025-05-20T08:15:00Z'), status: TransportStatus.REQUESTED },
+    { id: 't2', patientId: 'p2', appointmentId: 'a2', pickupLocation: '45 Oak Ave', destination: 'Beacon Medical Center', scheduledTime: ensureValidDate('2025-05-18T13:45:00Z'), status: TransportStatus.ASSIGNED, driverId: 'u3', driverName: 'Bill Driver' },
   ],
   referrals: [
-    { id: 'r1', patientId: 'p1', specialty: 'Cardiology', provider: 'Clearwater Hospital', urgency: RiskLevel.HIGH, status: ReferralStatus.SENT, requestedDate: '2025-05-10' },
+    { id: 'r1', patientId: 'p1', specialty: 'Cardiology', provider: 'Beacon Medical Center', urgency: RiskLevel.HIGH, status: ReferralStatus.SENT, requestedDate: '2025-05-10' },
   ],
   tasks: [
     { id: 'k1', patientId: 'p1', title: 'Follow-up on missed PT appointment', priority: TaskPriority.URGENT, status: 'PENDING', dueDate: '2025-05-16' },
   ],
   messages: [],
   notifications: [
-    { id: 'n-init', userId: 'u1', message: 'Welcome to Clearwater Ridge Care Coordinator.', status: 'unread', createdAt: new Date().toISOString() }
+    { id: 'n-init', userId: 'u1', message: 'Welcome to the Beacon Care Coordination Portal.', status: 'unread', createdAt: new Date().toISOString() }
   ],
   systemConfig: {
     seniorMode: true,
@@ -61,7 +68,7 @@ class Store {
   private listeners: (() => void)[] = [];
 
   constructor() {
-    const saved = localStorage.getItem('clearwater_state_v8');
+    const saved = localStorage.getItem('beacon_state_v1');
     if (saved) {
       try {
         this.data = JSON.parse(saved);
@@ -75,7 +82,7 @@ class Store {
   
   setState(newData: Partial<ExtendedAppState>) {
     this.data = { ...this.data, ...newData };
-    localStorage.setItem('clearwater_state_v8', JSON.stringify(this.data));
+    localStorage.setItem('beacon_state_v1', JSON.stringify(this.data));
     this.notify();
   }
 
@@ -90,7 +97,7 @@ class Store {
 
   toggleVirtualDoctor(active: boolean) {
     this.setState({ systemConfig: { ...this.data.systemConfig, virtualDoctorActive: active } });
-    this.addNotification(active ? "VIRTUAL DOCTOR MODE ENGAGED" : "COORDINATION ASSISTANT ENGAGED");
+    this.addNotification(active ? "VIRTUAL DOCTOR MODE ENGAGED" : "BEACON ASSISTANT ENGAGED");
   }
 
   setTheme(theme: 'clinical' | 'emergency') {
@@ -115,11 +122,11 @@ class Store {
     this.setState({ notifications });
   }
 
-  addAppointment(patientName: string, datetime: string, location: string = 'Clearwater Hospital', provider: string = 'Staff Physician') {
+  addAppointment(patientName: string, datetime: string, location: string = 'Beacon Medical Center', provider: string = 'Staff Physician') {
     const patient = this.data.patients.find(p => p.name.toLowerCase().includes(patientName.toLowerCase()));
     if (!patient) return null;
 
-    const fixedLocation = 'Clearwater Hospital';
+    const fixedLocation = 'Beacon Medical Center';
     const filteredAppts = this.data.appointments.filter(a => 
       !(a.patientId === patient.id && a.status === ApptStatus.SCHEDULED)
     );
@@ -135,7 +142,7 @@ class Store {
     };
     
     this.setState({ appointments: [newAppt, ...filteredAppts] });
-    this.addNotification(`Scheduled: Clearwater Hospital visit for ${patient.name}.`);
+    this.addNotification(`Scheduled: Beacon Medical Center visit for ${patient.name}.`);
     return newAppt;
   }
 
@@ -158,7 +165,7 @@ class Store {
     this.setState({ 
       appointments: this.data.appointments.map(a => a.id === id ? { ...a, status: ApptStatus.COMPLETED } : a) 
     });
-    this.addNotification("Clinical encounter completed and recorded.");
+    this.addNotification("Clinical encounter completed and recorded in Beacon.");
   }
 
   updateAppointmentTime(patientName: string, newDatetime: string) {
@@ -210,7 +217,6 @@ class Store {
     const patient = this.data.patients.find(p => p.name.toLowerCase().includes(patientName.toLowerCase()));
     if (!patient) return false;
     if (action === 'REQUEST') {
-      // Check for existing uncompleted ride to avoid duplicates
       const existing = this.data.transportRequests.find(r => r.patientId === patient.id && r.status === TransportStatus.REQUESTED);
       if (existing) return true;
 
@@ -218,12 +224,12 @@ class Store {
         id: `t-${Date.now()}`,
         patientId: patient.id,
         pickupLocation: patient.address,
-        destination: 'Clearwater Hospital',
+        destination: 'Beacon Medical Center',
         scheduledTime: new Date().toISOString(),
         status: TransportStatus.REQUESTED
       };
       this.setState({ transportRequests: [newRide, ...this.data.transportRequests] });
-      this.addNotification(`NEW PICKUP REQUEST: ${patient.name} needs a ride to the hospital.`);
+      this.addNotification(`NEW PICKUP REQUEST: ${patient.name} needs a ride to Beacon.`);
     } else if (action === 'ASSIGN' && driverName) {
       const driver = this.data.users.find(u => u.name.toLowerCase().includes(driverName.toLowerCase()));
       const ride = this.data.transportRequests.find(r => r.patientId === patient.id && r.status === TransportStatus.REQUESTED);
@@ -242,7 +248,7 @@ class Store {
         r.id === rideId ? { ...r, driverId, driverName, status: TransportStatus.ASSIGNED } : r
       )
     });
-    this.addNotification(`Ride ${rideId} claimed by ${driverName}.`);
+    this.addNotification(`Ride ${rideId} claimed by ${driverName} via Beacon Fleet.`);
   }
 
   requestRide(patientId: string, appointmentId?: string) {
@@ -256,12 +262,12 @@ class Store {
       patientId: patient.id,
       appointmentId: appt?.id,
       pickupLocation: patient.address,
-      destination: appt?.location || 'Clearwater Hospital',
+      destination: appt?.location || 'Beacon Medical Center',
       scheduledTime: appt ? ensureValidDate(new Date(new Date(appt.datetime).getTime() - 45 * 60000)) : new Date().toISOString(),
       status: TransportStatus.REQUESTED
     };
     this.setState({ transportRequests: [newRide, ...this.data.transportRequests] });
-    this.addNotification(`Pickup requested for ${patient.name}.`);
+    this.addNotification(`Beacon Pickup requested for ${patient.name}.`);
     return true;
   }
 
@@ -281,20 +287,38 @@ class Store {
       return a;
     });
     this.setState({ appointments: appts });
-    this.addNotification("Rescheduled missed appointment for one week from original date.");
+    this.addNotification("Rescheduled via Beacon for one week from original date.");
   }
 
   requestMedicalHelp(patientId: string) {
-    this.addNotification(`EMERGENCY ALERT: Patient ${patientId} requested help.`);
+    const patient = this.data.patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // Trigger Emergency UI
     this.setTheme('emergency');
+    this.addNotification(`EMERGENCY SOS: AMBULANCE DISPATCHED TO ${patient.address.toUpperCase()} FOR ${patient.name.toUpperCase()}.`);
+
+    // Create Emergency Transport Mission
+    const emergencyRide: TransportRequest = {
+      id: `sos-${Date.now()}`,
+      patientId: patient.id,
+      pickupLocation: patient.address,
+      destination: 'BEACON EMERGENCY ROOM',
+      scheduledTime: new Date().toISOString(),
+      status: TransportStatus.ASSIGNED,
+      driverName: 'AMBULANCE UNIT 01', // Pre-assigned for emergency
+      isEmergency: true
+    };
+
+    this.setState({ transportRequests: [emergencyRide, ...this.data.transportRequests] });
   }
 
   requestPrivateSupport(patientId: string) {
-    this.addNotification(`SUPPORT REQUEST: Patient ${patientId} is requesting a team member talk.`);
+    this.addNotification(`BEACON SUPPORT: Patient ${patientId} is requesting a team member talk.`);
   }
 
   callDriver(rideId: string) {
-    this.addNotification(`Connecting to transportation center for ride ${rideId}...`);
+    this.addNotification(`Connecting to Beacon Fleet for ride ${rideId}...`);
   }
 
   sendMessage(senderId: string, text: string, receiverId: string) {

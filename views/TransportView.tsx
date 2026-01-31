@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { store } from '../db';
+import { store, formatClinicalTime } from '../db';
 import { AppState, User, TransportStatus } from '../types';
 
 interface TransportViewProps {
@@ -15,8 +15,8 @@ const TransportView: React.FC<TransportViewProps> = ({ state, user }) => {
     switch (status) {
       case TransportStatus.COMPLETED: return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case TransportStatus.FAILED: return 'bg-rose-50 text-rose-700 border-rose-200';
-      case TransportStatus.PICKED_UP: return 'bg-blue-50 text-blue-700 border-blue-200';
-      case TransportStatus.ASSIGNED: return 'bg-amber-50 text-amber-700 border-amber-200';
+      case TransportStatus.PICKED_UP: return 'bg-amber-50 text-amber-700 border-amber-200';
+      case TransportStatus.ASSIGNED: return 'bg-blue-50 text-blue-700 border-blue-200';
       default: return 'bg-slate-50 text-slate-500 border-slate-200';
     }
   };
@@ -24,58 +24,67 @@ const TransportView: React.FC<TransportViewProps> = ({ state, user }) => {
   return (
     <div className="p-8 space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institutional Logistics</h1>
-        <p className="text-sm text-slate-500 font-medium mt-1 uppercase tracking-widest">Clearwater Ridge Transportation Fleet Status</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Beacon Fleet Intelligence</h1>
+        <p className="text-sm text-slate-500 font-medium mt-1 uppercase tracking-widest">Institutional Logistics Dashboard</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Fleet Active', value: '3 Vehicles', color: 'text-slate-900' },
-          { label: 'Pending Pickups', value: requests.filter(r => r.status === TransportStatus.REQUESTED).length, color: 'text-blue-600' },
-          { label: 'In Transit', value: requests.filter(r => r.status === TransportStatus.PICKED_UP).length, color: 'text-amber-600' },
-          { label: 'Completed Today', value: requests.filter(r => r.status === TransportStatus.COMPLETED).length, color: 'text-emerald-600' }
+          { label: 'Beacon Units Active', value: '3 Vehicles', color: 'text-slate-900' },
+          { label: 'Pending Dispatches', value: requests.filter(r => r.status === TransportStatus.REQUESTED).length, color: 'text-amber-600' },
+          { label: 'Units in Transit', value: requests.filter(r => r.status === TransportStatus.PICKED_UP).length, color: 'text-blue-600' },
+          { label: 'Missions Completed', value: requests.filter(r => r.status === TransportStatus.COMPLETED).length, color: 'text-emerald-600' }
         ].map((stat, i) => (
-          <div key={i} className="medical-card p-6">
+          <div key={i} className="medical-card p-6 border-l-4 border-l-amber-400">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
             <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="medical-card">
+      <div className="medical-card border-t-2 border-t-slate-800">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Movement Log</h2>
+          <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest tracking-widest italic">Live Mission Manifest</h2>
         </div>
         <table className="w-full data-table">
           <thead>
             <tr>
-              <th>Patient</th>
-              <th>Destination</th>
-              <th>Pickup Time</th>
-              <th>Assigned Driver</th>
+              <th>Beacon Subject</th>
+              <th>Clinical Destination</th>
+              <th>Pickup Schedule</th>
+              <th>Mission Operator</th>
               <th>Fleet Status</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {requests.map(ride => (
-              <tr key={ride.id} className="hover:bg-slate-50">
+              <tr key={ride.id} className={`hover:bg-slate-50 ${ride.isEmergency ? 'bg-rose-50' : ''}`}>
                 <td>
-                  <p className="font-bold text-slate-900 text-sm">{state.patients.find(p => p.id === ride.patientId)?.name}</p>
-                  <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Location: {ride.pickupLocation.split(',')[0]}</p>
+                  <div className="flex items-center gap-2">
+                    {ride.isEmergency && <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />}
+                    <div>
+                      <p className={`font-bold text-sm ${ride.isEmergency ? 'text-rose-800' : 'text-slate-900'}`}>
+                        {state.patients.find(p => p.id === ride.patientId)?.name}
+                      </p>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Origin: {ride.pickupLocation.split(',')[0]}</p>
+                    </div>
+                  </div>
                 </td>
-                <td className="text-xs text-slate-600 font-medium">
+                <td className={`text-xs font-medium italic uppercase ${ride.isEmergency ? 'text-rose-700 font-black' : 'text-slate-600'}`}>
                   {ride.destination}
                 </td>
-                <td className="text-xs font-bold text-blue-800">
-                  {new Date(ride.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <td className={`text-xs font-bold ${ride.isEmergency ? 'text-rose-800 animate-pulse' : 'text-amber-700'}`}>
+                  {formatClinicalTime(ride.scheduledTime)}
                 </td>
                 <td>
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-black text-slate-500">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white ${ride.isEmergency ? 'bg-rose-900' : 'bg-slate-900'}`}>
                       {ride.driverName?.charAt(0) || '?'}
                     </div>
-                    <span className="text-xs font-semibold text-slate-700">{ride.driverName || 'UNASSIGNED'}</span>
+                    <span className={`text-xs font-semibold ${ride.isEmergency ? 'text-rose-900 font-black' : 'text-slate-700'}`}>
+                      {ride.driverName || 'PENDING DISPATCH'}
+                    </span>
                   </div>
                 </td>
                 <td>
@@ -84,13 +93,15 @@ const TransportView: React.FC<TransportViewProps> = ({ state, user }) => {
                   </span>
                 </td>
                 <td className="text-right">
-                   <button className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Reassign</button>
+                   <button className={`text-[10px] font-bold uppercase tracking-widest hover:underline ${ride.isEmergency ? 'text-rose-600' : 'text-amber-600'}`}>
+                     {ride.isEmergency ? 'ESC Control' : 'Reassign'}
+                   </button>
                 </td>
               </tr>
             ))}
             {requests.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-20 text-center opacity-40 italic text-sm">No active movement logs recorded.</td>
+                <td colSpan={6} className="py-20 text-center opacity-40 italic text-sm">No active Beacon Fleet missions recorded.</td>
               </tr>
             )}
           </tbody>

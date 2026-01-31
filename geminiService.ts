@@ -28,7 +28,7 @@ export const CARE_ASSISTANT_TOOLS = {
     },
     {
       name: 'manageAppointment',
-      description: 'Schedule or cancel clinical visits at Clearwater Hospital. Note: The location is always Clearwater Hospital.',
+      description: 'Schedule or cancel clinical visits at Beacon Medical Center. Note: The location is always Beacon Medical Center.',
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -41,7 +41,7 @@ export const CARE_ASSISTANT_TOOLS = {
     },
     {
       name: 'manageTask',
-      description: 'Create or resolve follow-up care tasks in the clinical work queue.',
+      description: 'Create or resolve follow-up care tasks in the Beacon work queue.',
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -55,7 +55,7 @@ export const CARE_ASSISTANT_TOOLS = {
     },
     {
       name: 'manageTransport',
-      description: 'Handle patient logistics, rides, and driver assignments.',
+      description: 'Handle patient logistics, rides, and driver assignments through the Beacon Fleet.',
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -80,10 +80,10 @@ export const CARE_ASSISTANT_TOOLS = {
   ]
 };
 
-export const SYSTEM_INSTRUCTION = `You are the Clearwater Ridge Care Intelligence System. You assist healthcare providers and patients.
+export const SYSTEM_INSTRUCTION = `You are the Beacon Care Intelligence System. You assist healthcare providers and patients.
 
 UI RULE - LOCATION:
-- Every appointment is at 'Clearwater Hospital'. NEVER ask the user for a location. 
+- Every appointment is at 'Beacon Medical Center'. NEVER ask the user for a location. 
 
 ROLE-BASED PERMISSIONS (CRITICAL):
 1. If SESSION_ROLE is PATIENT:
@@ -92,7 +92,7 @@ ROLE-BASED PERMISSIONS (CRITICAL):
    - If they ask for an appointment, call 'manageAppointment' with ADD. 
 
 2. If SESSION_ROLE is NURSE or DOCTOR:
-   - Full administrative access.
+   - Full administrative access to the Beacon platform.
 
 GUARDRAILS:
 1. NO CONFIRMATIONS: Just call the tools IMMEDIATELY when a command is clear.

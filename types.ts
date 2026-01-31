@@ -84,6 +84,7 @@ export interface TransportRequest {
   status: TransportStatus;
   driverId?: string;
   driverName?: string;
+  isEmergency?: boolean;
 }
 
 export interface Referral {

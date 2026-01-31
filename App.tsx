@@ -17,7 +17,7 @@ const LoginView: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => 
     <div className="fixed inset-0 bg-slate-100 flex items-center justify-center p-4 z-[200]">
       <div className="w-full max-w-md bg-white rounded-lg border border-slate-300 shadow-xl overflow-hidden">
         <div className="bg-slate-900 p-8 text-center text-white">
-           <div className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 mb-2">Clearwater Ridge Health System</div>
+           <div className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 mb-2">Beacon Health Operations</div>
            <h1 className="text-2xl font-bold tracking-tight">Clinical Coordination Portal</h1>
         </div>
         <div className="p-8 space-y-6">
@@ -27,7 +27,7 @@ const LoginView: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => 
               <button 
                 key={user.id} 
                 onClick={() => onLogin(user)}
-                className="w-full flex items-center justify-between p-4 rounded border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
+                className="w-full flex items-center justify-between p-4 rounded border border-slate-200 hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
               >
                 <div>
                   <p className="text-sm font-bold text-slate-900">{user.name}</p>
@@ -41,7 +41,7 @@ const LoginView: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) => 
           </div>
         </div>
         <div className="bg-slate-50 p-4 border-t border-slate-200 text-center">
-          <p className="text-[10px] text-slate-400 font-bold uppercase">Authorized Personnel Only • v4.2.0-PRO</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase">Beacon Proprietary System • v5.0.0-PRO</p>
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@ const App: React.FC = () => {
     switch (data.functionName || "") {
       case "consultVirtualDoctor":
         store.toggleVirtualDoctor(data.enable);
-        return `Consultation mode ${data.enable ? 'engaged' : 'disengaged'}.`;
+        return `Beacon Consultation mode ${data.enable ? 'engaged' : 'disengaged'}.`;
 
       case "manageAppointment":
         if (data.action === 'ADD') {
@@ -76,19 +76,18 @@ const App: React.FC = () => {
         } else {
            store.updateAppointmentTime(targetPatientName, data.datetime);
         }
-        return "Clinical schedule updated for Clearwater Hospital.";
+        return "Clinical schedule updated for Beacon Medical Center.";
 
       case "manageTransport":
-        // Allow patients to request for themselves
         if (isPatient && data.action !== 'REQUEST') {
           return "Access denied to administrative logistics.";
         }
         store.manageTransport(data.action, targetPatientName, data.driverName);
-        return "Logistics updated.";
+        return "Beacon Fleet updated.";
 
       case "getPatientInfo":
         const p = appState.patients.find(pt => pt.name.toLowerCase().includes(targetPatientName?.toLowerCase() || ''));
-        return p ? `${p.name}: Risk ${p.riskLevel}.` : "Record not found.";
+        return p ? `${p.name}: Risk ${p.riskLevel}.` : "Record not found in Beacon.";
 
       case "navigate":
         if (data.target === 'LOGISTICS' && isPatient) return "Access denied to logistics system.";
@@ -96,7 +95,7 @@ const App: React.FC = () => {
         return `Navigation to ${data.target} verified.`;
 
       default:
-        return "Command processed.";
+        return "Command processed by Beacon.";
     }
   };
 
@@ -110,27 +109,27 @@ const App: React.FC = () => {
       <nav className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-2">
-            <div className={`w-6 h-6 ${systemConfig.theme === 'emergency' ? 'bg-rose-600' : 'bg-blue-800'} rounded-sm flex items-center justify-center text-white font-bold text-xs`}>C</div>
-            <span className="font-bold text-slate-900 tracking-tight">Clearwater Ridge</span>
+            <div className={`w-6 h-6 ${systemConfig.theme === 'emergency' ? 'bg-rose-600' : 'bg-slate-900'} rounded-sm flex items-center justify-center text-white font-black text-xs beacon-glow`}>B</div>
+            <span className="font-bold text-slate-900 tracking-tight">Beacon Care</span>
           </div>
           <div className="hidden lg:flex items-center gap-1">
             <button 
               onClick={() => setCurrentView('MAIN')} 
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'MAIN' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'MAIN' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-900'}`}
             >
               Dashboard
             </button>
             {isAuthorizedForLogistics && (
               <button 
                 onClick={() => setCurrentView('LOGISTICS')} 
-                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'LOGISTICS' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'LOGISTICS' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-900'}`}
               >
                 Logistics
               </button>
             )}
             <button 
               onClick={() => setCurrentView('INBOX')} 
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'INBOX' ? 'text-blue-700' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${currentView === 'INBOX' ? 'text-amber-600' : 'text-slate-500 hover:text-slate-900'}`}
             >
               Notifications
             </button>

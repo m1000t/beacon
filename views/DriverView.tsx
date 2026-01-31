@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { store } from '../db';
+import { store, formatClinicalTime } from '../db';
 import { TransportStatus, User } from '../types';
 import TransportView from './TransportView';
 
@@ -46,11 +46,13 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
     setCancellingRideId(null);
   };
 
-  const activeRides = rides.filter(r => 
-    r.driverId === user.id && 
-    r.status !== TransportStatus.COMPLETED && 
-    r.status !== TransportStatus.FAILED
-  );
+  const activeRides = rides
+    .filter(r => 
+      r.driverId === user.id && 
+      r.status !== TransportStatus.COMPLETED && 
+      r.status !== TransportStatus.FAILED
+    )
+    .sort((a, b) => (a.isEmergency === b.isEmergency ? 0 : a.isEmergency ? -1 : 1));
 
   const availableRides = rides.filter(r => 
     r.status === TransportStatus.REQUESTED && !r.driverId
@@ -106,7 +108,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
         {activeTab === 'MISSIONS' && (
           <div className="space-y-6">
             {activeRides.map(ride => (
-              <div key={ride.id} className="bg-white rounded-3xl overflow-hidden shadow-xl border-t-4 border-t-blue-600">
+              <div key={ride.id} className={`bg-white rounded-3xl overflow-hidden shadow-xl border-t-8 ${ride.isEmergency ? 'border-t-rose-600 ring-4 ring-rose-200 ring-inset' : 'border-t-blue-600'}`}>
                 {cancellingRideId === ride.id ? (
                   <div className="p-8 space-y-6 text-center">
                     <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -134,13 +136,13 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                 ) : (
                   <div className="p-6 md:p-8 space-y-8">
                     <div className="flex justify-between items-center">
-                      <div className="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
-                        {ride.status}
+                      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${ride.isEmergency ? 'bg-rose-600 text-white border-rose-700 animate-pulse' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                        {ride.isEmergency ? 'EMERGENCY SOS' : ride.status}
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Pickup</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Local Time</p>
                         <p className="text-xl font-black text-slate-900">
-                          {new Date(ride.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatClinicalTime(ride.scheduledTime)}
                         </p>
                       </div>
                     </div>
@@ -148,19 +150,21 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                     <div className="space-y-6">
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="w-3 h-3 rounded-full border-2 border-slate-900" />
+                          <div className={`w-3 h-3 rounded-full border-2 ${ride.isEmergency ? 'border-rose-600' : 'border-slate-900'}`} />
                           <div className="w-0.5 flex-1 bg-slate-200 my-1" />
-                          <div className="w-3 h-3 bg-blue-600 rotate-45" />
+                          <div className={`w-3 h-3 rotate-45 ${ride.isEmergency ? 'bg-rose-600' : 'bg-blue-600'}`} />
                         </div>
                         <div className="flex-1 space-y-6">
                            <div>
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Patient Passenger</p>
-                             <p className="text-2xl font-black text-slate-900">{store.getState().patients.find(p => p.id === ride.patientId)?.name || 'Patient'}</p>
-                             <p className="text-sm font-bold text-slate-600 mt-1">{ride.pickupLocation}</p>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Beacon Subject</p>
+                             <p className={`text-2xl font-black ${ride.isEmergency ? 'text-rose-900' : 'text-slate-900'}`}>
+                               {store.getState().patients.find(p => p.id === ride.patientId)?.name || 'Patient'}
+                             </p>
+                             <p className="text-sm font-bold text-slate-600 mt-1 uppercase italic tracking-tight">{ride.pickupLocation}</p>
                            </div>
                            <div className="pt-2">
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Clinical Destination</p>
-                             <p className="text-xl font-black text-slate-900">{ride.destination}</p>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mission End</p>
+                             <p className={`text-xl font-black ${ride.isEmergency ? 'text-rose-700' : 'text-slate-900'}`}>{ride.destination}</p>
                            </div>
                         </div>
                       </div>
@@ -170,9 +174,9 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                       {ride.status === TransportStatus.ASSIGNED ? (
                         <button 
                           onClick={() => updateStatus(ride.id, TransportStatus.ACCEPTED)}
-                          className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-lg uppercase shadow-xl active:scale-95 transition-all"
+                          className={`w-full py-6 rounded-2xl font-black text-lg uppercase shadow-xl active:scale-95 transition-all ${ride.isEmergency ? 'bg-rose-700 text-white' : 'bg-slate-900 text-white'}`}
                         >
-                          Begin Mission
+                          {ride.isEmergency ? 'Deploy Emergency Unit' : 'Begin Mission'}
                         </button>
                       ) : ride.status === TransportStatus.ACCEPTED ? (
                         <button 
@@ -190,12 +194,14 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                         </button>
                       )}
                       
-                      <button 
-                        onClick={() => setCancellingRideId(ride.id)}
-                        className="w-full py-3 text-rose-500 font-black text-[10px] uppercase tracking-[0.2em] border border-rose-100 rounded-xl hover:bg-rose-50"
-                      >
-                        Report Operational Hazard
-                      </button>
+                      {!ride.isEmergency && (
+                        <button 
+                          onClick={() => setCancellingRideId(ride.id)}
+                          className="w-full py-3 text-rose-500 font-black text-[10px] uppercase tracking-[0.2em] border border-rose-100 rounded-xl hover:bg-rose-50"
+                        >
+                          Report Operational Hazard
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -282,8 +288,8 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                <p className="text-sm font-black text-emerald-600">ON DUTY</p>
              </div>
              <div>
-               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Completed Today</p>
-               <p className="text-sm font-black text-slate-900">{rides.filter(r => r.driverId === user.id && r.status === TransportStatus.COMPLETED).length}</p>
+               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Local Clock</p>
+               <p className="text-sm font-black text-slate-900">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
              </div>
            </div>
            <div className="text-right">
@@ -291,7 +297,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                <p className="text-sm font-black text-slate-900 uppercase tracking-tighter">Auth: {user.name.split(' ')[0]}</p>
              </div>
-             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Clinical Data Link v4</p>
+             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Clinical Data Link v5</p>
            </div>
         </div>
       </footer>

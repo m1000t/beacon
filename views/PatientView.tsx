@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { store } from '../db';
+import { store, formatClinicalTime } from '../db';
 import { ApptStatus, TransportStatus, User, AppState } from '../types';
 
 interface PatientViewProps {
@@ -12,12 +12,6 @@ const formatDateLabel = (d: any) => {
   const date = new Date(d);
   if (isNaN(date.getTime())) return "TBD";
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
-};
-
-const formatTimeLabel = (d: any) => {
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return "TBD";
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
@@ -35,6 +29,7 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
   );
   
   const nextRide = activeRides[0];
+  const isEmergencyActive = nextRide?.isEmergency;
   
   const [requestStatus, setRequestStatus] = useState<'idle' | 'calling' | 'help_requested' | 'support_requested' | 'ride_requested'>('idle');
 
@@ -48,70 +43,82 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
     <div className="max-w-5xl mx-auto p-6 md:p-12 space-y-12 senior-mode pb-40">
       <header className="border-b-2 border-slate-200 pb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Patient Clinical Portal</h1>
-          <p className="text-slate-500 font-medium mt-2">Active care record for {patient.name}</p>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Beacon Patient Care</h1>
+          <p className="text-slate-500 font-medium mt-2">Personal Care Record • {patient.name}</p>
         </div>
         <div className="hidden sm:block text-right">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medical Record Number</p>
-          <p className="text-lg font-bold text-slate-900">#CR-{patient.id.toUpperCase()}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Beacon ID</p>
+          <p className="text-lg font-bold text-slate-900">#BC-{patient.id.toUpperCase()}</p>
         </div>
       </header>
+
+      {isEmergencyActive && (
+        <div className="bg-rose-600 text-white p-8 rounded-2xl shadow-2xl animate-pulse flex flex-col md:flex-row items-center justify-between gap-6 border-4 border-rose-300">
+           <div className="text-center md:text-left">
+             <h2 className="text-3xl font-black uppercase italic tracking-tighter">Emergency Unit En Route</h2>
+             <p className="text-rose-100 font-bold mt-1 text-lg">Help is on the way to {patient.address.split(',')[0]}. Stay calm.</p>
+           </div>
+           <div className="bg-white text-rose-600 px-8 py-4 rounded-xl font-black text-xl uppercase shadow-lg">
+             EST 4-6 MIN
+           </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         <section className="lg:col-span-7 space-y-8">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-2 h-8 bg-blue-700 rounded-full" />
-            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Scheduled Healthcare Visits</h2>
+            <div className="w-2 h-8 bg-amber-500 rounded-full" />
+            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Scheduled Services</h2>
           </div>
           
           {activeAppts.map(appt => (
-            <div key={appt.id} className="medical-card border-2 border-slate-200 overflow-hidden">
+            <div key={appt.id} className="medical-card border-2 border-slate-200 overflow-hidden shadow-lg">
               <div className="bg-slate-100 px-6 py-3 border-b border-slate-200 flex justify-between items-center">
-                <span className="text-xs font-bold text-blue-800 uppercase tracking-widest">{appt.status}</span>
+                <span className="text-xs font-bold text-amber-600 uppercase tracking-widest font-black">{appt.status}</span>
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Record ID: {appt.id}</span>
               </div>
               <div className="p-8">
-                <div className="mb-8">
-                  <h3 className="text-3xl font-bold text-slate-900">{appt.location}</h3>
-                  <p className="text-slate-500 text-xl font-medium mt-1">Lead Provider: {appt.provider}</p>
+                <div className="mb-8 border-l-4 border-l-amber-500 pl-6">
+                  <h3 className="text-3xl font-bold text-slate-900 italic">{appt.location}</h3>
+                  <p className="text-slate-500 text-xl font-medium mt-1 uppercase tracking-tight">Provider: {appt.provider}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-8 border-y border-slate-100 py-6 mb-8">
                   <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Appointment Date</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Encounter Date</p>
                     <p className="text-2xl font-bold text-slate-800">{formatDateLabel(appt.datetime)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Time of Service</p>
-                    <p className="text-2xl font-bold text-slate-800">{formatTimeLabel(appt.datetime)}</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Arrival Time</p>
+                    <p className="text-2xl font-bold text-slate-800">{formatClinicalTime(appt.datetime)}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button 
                     onClick={() => store.confirmAppt(appt.id)}
-                    className="bg-blue-800 text-white py-4 px-6 rounded font-bold text-lg hover:bg-blue-900 transition-colors shadow-md"
+                    className="bg-slate-900 text-white py-4 px-6 rounded font-black text-lg hover:bg-slate-800 transition-colors shadow-md uppercase tracking-widest"
                   >
-                    Confirm Attendance
+                    Confirm Visit
                   </button>
                   <button 
                     onClick={() => store.requestRide(patient.id, appt.id)}
-                    className={`py-4 px-6 rounded font-bold text-lg border-2 transition-colors ${nextRide ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-800 hover:bg-slate-50'}`}
+                    className={`py-4 px-6 rounded font-black text-lg border-2 transition-colors uppercase tracking-widest ${nextRide ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-800 hover:bg-slate-50'}`}
                   >
-                    {nextRide ? 'Logistics In Progress' : 'Request Transport'}
+                    {nextRide ? 'Fleet Dispatched' : 'Beacon Pickup'}
                   </button>
                 </div>
               </div>
             </div>
           ))}
           {activeAppts.length === 0 && (
-            <div className="bg-white border-2 border-dashed border-slate-200 rounded p-12 text-center">
-              <p className="text-slate-400 font-medium italic text-lg">No clinical visits found in the current period.</p>
+            <div className="bg-white border-2 border-dashed border-slate-200 rounded p-12 text-center shadow-inner">
+              <p className="text-slate-400 font-medium italic text-lg mb-8 uppercase tracking-widest opacity-60">No Clinical Visits Found</p>
               <button 
                  onClick={handleRequestRide}
-                 className="mt-6 bg-blue-700 text-white px-8 py-4 rounded-xl font-bold text-xl uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                 className="bg-amber-600 text-white px-8 py-4 rounded-xl font-black text-xl uppercase tracking-widest shadow-xl active:scale-95 transition-all beacon-glow"
               >
-                {requestStatus === 'ride_requested' ? 'Request Sent!' : 'Request Pickup Now'}
+                {requestStatus === 'ride_requested' ? 'Fleet Notified!' : 'Request Beacon Fleet Now'}
               </button>
             </div>
           )}
@@ -122,38 +129,40 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
             <section className="space-y-6">
               <div className="flex items-center gap-4">
                 <div className="w-2 h-8 bg-slate-900 rounded-full" />
-                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Current Transit</h2>
+                <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Beacon Fleet Status</h2>
               </div>
-              <div className="bg-slate-900 text-white rounded-lg p-8 shadow-xl border-b-8 border-blue-600">
+              <div className={`rounded-lg p-8 shadow-2xl border-b-8 transition-colors ${isEmergencyActive ? 'bg-rose-900 border-rose-500 text-white' : 'bg-slate-900 border-amber-500 text-white'}`}>
                 <div className="flex justify-between items-start mb-6">
                    <div>
-                     <p className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em]">Vehicle Link</p>
-                     <h3 className="text-2xl font-bold mt-1 leading-tight">{nextRide.driverName || 'Finding Driver...'}</h3>
+                     <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${isEmergencyActive ? 'text-rose-300' : 'text-amber-400'}`}>
+                       {isEmergencyActive ? 'Emergency Dispatch' : 'Operator Assigned'}
+                     </p>
+                     <h3 className="text-2xl font-black mt-1 leading-tight italic uppercase">{nextRide.driverName || 'Manifesting Unit...'}</h3>
                    </div>
-                   <span className="bg-blue-800/50 text-blue-200 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-blue-700">
+                   <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border ${isEmergencyActive ? 'bg-rose-700 text-rose-100 border-rose-500 animate-pulse' : 'bg-amber-500 text-slate-900 border-amber-400'}`}>
                      {nextRide.status}
                    </span>
                 </div>
                 <div className="space-y-4 mb-8">
-                  <div className="flex gap-4 items-center opacity-80">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <p className="text-sm font-medium">From: {nextRide.pickupLocation}</p>
+                  <div className="flex gap-4 items-center opacity-80 border-b border-white/10 pb-2">
+                    <div className={`w-2 h-2 rounded-full ${isEmergencyActive ? 'bg-rose-400' : 'bg-amber-400'}`} />
+                    <p className="text-xs font-bold uppercase tracking-tight">Origin: {nextRide.pickupLocation}</p>
                   </div>
                   <div className="flex gap-4 items-center opacity-80">
                     <div className="w-2 h-2 rounded-full bg-blue-400" />
-                    <p className="text-sm font-medium">Dest: {nextRide.destination}</p>
+                    <p className="text-xs font-bold uppercase tracking-tight">Dest: {nextRide.destination}</p>
                   </div>
                 </div>
                 {nextRide.driverName ? (
                   <button 
                     onClick={() => store.callDriver(nextRide.id)}
-                    className="w-full bg-white text-slate-900 py-4 rounded font-bold text-sm hover:bg-slate-100 transition-colors uppercase tracking-widest"
+                    className="w-full bg-white text-slate-900 py-4 rounded font-black text-sm hover:bg-slate-100 transition-colors uppercase tracking-widest"
                   >
-                    Contact Driver
+                    Call {isEmergencyActive ? 'Emergency Unit' : 'Beacon Fleet'}
                   </button>
                 ) : (
-                  <div className="text-center p-4 border border-white/10 rounded bg-white/5">
-                     <p className="text-[10px] font-bold uppercase opacity-50">Drivers have been notified of your request.</p>
+                  <div className="text-center p-6 border border-white/20 rounded bg-white/5 animate-pulse">
+                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">Beacon unit dispatch in progress.</p>
                   </div>
                 )}
               </div>
@@ -163,22 +172,22 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
           <section className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="w-2 h-8 bg-rose-600 rounded-full" />
-              <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Care Assistance</h2>
+              <h2 className="text-lg font-bold text-slate-800 uppercase tracking-wider">Urgent Assistance</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">
               <button 
                 onClick={() => { store.requestMedicalHelp(patient.id); setRequestStatus('help_requested'); }}
                 className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'help_requested' ? 'bg-rose-700 border-rose-700 text-white' : 'bg-white border-slate-200 text-rose-600 hover:border-rose-300 shadow-sm'}`}
               >
-                <p className="text-3xl font-bold mb-2 uppercase italic">Emergency</p>
-                <p className="text-xs font-bold uppercase tracking-widest opacity-60">Instant Clinical Alert</p>
+                <p className="text-3xl font-black mb-2 uppercase italic">Medical SOS</p>
+                <p className="text-xs font-bold uppercase tracking-widest opacity-60 italic">Dispatches Ambulance Immediately</p>
               </button>
               <button 
                 onClick={() => { store.requestPrivateSupport(patient.id); setRequestStatus('support_requested'); }}
-                className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'support_requested' ? 'bg-blue-800 border-blue-800 text-white' : 'bg-white border-slate-200 text-blue-800 hover:border-blue-300 shadow-sm'}`}
+                className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'support_requested' ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-200 text-amber-700 hover:border-amber-300 shadow-sm'}`}
               >
-                <p className="text-3xl font-bold mb-2 uppercase italic">Talk to Team</p>
-                <p className="text-xs font-bold uppercase tracking-widest opacity-60">Operational Support Request</p>
+                <p className="text-3xl font-black mb-2 uppercase italic">Support Request</p>
+                <p className="text-xs font-bold uppercase tracking-widest opacity-60">Beacon Care Liaison</p>
               </button>
             </div>
           </section>
