@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { store, formatClinicalTime } from '../db';
-import { ApptStatus, TaskPriority, User, AppState } from '../types';
+import { ApptStatus, TaskPriority, User, AppState, TransportStatus } from '../types';
 import { COLORS } from '../constants';
 
 interface NurseViewProps {
@@ -21,6 +21,7 @@ const NurseView: React.FC<NurseViewProps> = ({ user, state }) => {
   const pendingTasks = state.tasks.filter(t => t.status === 'PENDING');
   const missedAppts = state.appointments.filter(a => a.status === ApptStatus.MISSED);
   const scheduledAppts = state.appointments.filter(a => a.status === ApptStatus.SCHEDULED || a.status === ApptStatus.CONFIRMED);
+  const activeSOS = state.transportRequests.find(r => r.isEmergency && r.status !== TransportStatus.COMPLETED);
 
   return (
     <div className="p-8">
@@ -122,6 +123,23 @@ const NurseView: React.FC<NurseViewProps> = ({ user, state }) => {
 
           {/* Sidebar Column */}
           <div className="lg:col-span-4 space-y-8">
+            {activeSOS && (
+              <div className="bg-rose-600 text-white p-6 rounded shadow-xl animate-pulse">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-tighter italic">Emergency In Progress</h3>
+                    <p className="text-[10px] font-bold text-rose-200">Patient: {state.patients.find(p => p.id === activeSOS.patientId)?.name}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => store.resolveEmergency(activeSOS.patientId)}
+                  className="w-full bg-white text-rose-700 py-2 rounded text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-100 transition-all"
+                >
+                  Resolve SOS Theme
+                </button>
+              </div>
+            )}
+
             <div className="medical-card flex flex-col h-[300px] overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clinical Care Tasks</span>

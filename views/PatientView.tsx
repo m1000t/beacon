@@ -28,15 +28,19 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
     t.status !== TransportStatus.FAILED
   );
   
-  const nextRide = activeRides[0];
+  const nextRide = activeRides.find(r => r.isEmergency) || activeRides[0];
   const isEmergencyActive = nextRide?.isEmergency;
   
-  const [requestStatus, setRequestStatus] = useState<'idle' | 'calling' | 'help_requested' | 'support_requested' | 'ride_requested'>('idle');
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'calling' | 'help_requested' | 'ride_requested'>('idle');
 
   const handleRequestRide = () => {
     store.requestRide(patient.id);
     setRequestStatus('ride_requested');
     setTimeout(() => setRequestStatus('idle'), 3000);
+  };
+
+  const handleResolveEmergency = () => {
+    store.resolveEmergency(patient.id);
   };
 
   return (
@@ -58,8 +62,16 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
              <h2 className="text-3xl font-black uppercase italic tracking-tighter">Emergency Unit En Route</h2>
              <p className="text-rose-100 font-bold mt-1 text-lg">Help is on the way to {patient.address.split(',')[0]}. Stay calm.</p>
            </div>
-           <div className="bg-white text-rose-600 px-8 py-4 rounded-xl font-black text-xl uppercase shadow-lg">
-             EST 4-6 MIN
+           <div className="flex gap-4">
+             <div className="bg-white text-rose-600 px-6 py-4 rounded-xl font-black text-xl uppercase shadow-lg">
+               EST 4-6 MIN
+             </div>
+             <button 
+               onClick={handleResolveEmergency}
+               className="bg-rose-900 text-white px-6 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg hover:bg-black transition-colors"
+             >
+               Help Arrived
+             </button>
            </div>
         </div>
       )}
@@ -90,7 +102,7 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
                   </div>
                   <div>
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Arrival Time</p>
-                    <p className="text-2xl font-bold text-slate-800">{formatClinicalTime(appt.datetime)}</p>
+                    <p className="text-2xl font-bold text-amber-700 tracking-tight">{formatClinicalTime(appt.datetime)}</p>
                   </div>
                 </div>
 
@@ -122,6 +134,15 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
               </button>
             </div>
           )}
+
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6">
+             <h3 className="text-indigo-900 font-bold italic mb-2">Mental Health Support</h3>
+             <p className="text-sm text-slate-600 mb-4">If you are in immediate distress or need to talk, resources are available 24/7.</p>
+             <div className="flex items-center gap-4">
+                <span className="text-xs font-black uppercase text-indigo-400 tracking-widest">National Crisis Line:</span>
+                <span className="text-xl font-black text-indigo-900 tracking-tighter">DIAL 988</span>
+             </div>
+          </div>
         </section>
 
         <div className="lg:col-span-5 space-y-12">
@@ -177,17 +198,10 @@ const PatientView: React.FC<PatientViewProps> = ({ user, state }) => {
             <div className="grid grid-cols-1 gap-4">
               <button 
                 onClick={() => { store.requestMedicalHelp(patient.id); setRequestStatus('help_requested'); }}
-                className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'help_requested' ? 'bg-rose-700 border-rose-700 text-white' : 'bg-white border-slate-200 text-rose-600 hover:border-rose-300 shadow-sm'}`}
+                className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'help_requested' || isEmergencyActive ? 'bg-rose-700 border-rose-700 text-white' : 'bg-white border-slate-200 text-rose-600 hover:border-rose-300 shadow-sm'}`}
               >
-                <p className="text-3xl font-black mb-2 uppercase italic">Medical SOS</p>
-                <p className="text-xs font-bold uppercase tracking-widest opacity-60 italic">Dispatches Ambulance Immediately</p>
-              </button>
-              <button 
-                onClick={() => { store.requestPrivateSupport(patient.id); setRequestStatus('support_requested'); }}
-                className={`p-10 rounded border-2 text-center transition-all ${requestStatus === 'support_requested' ? 'bg-amber-600 border-amber-600 text-white' : 'bg-white border-slate-200 text-amber-700 hover:border-amber-300 shadow-sm'}`}
-              >
-                <p className="text-3xl font-black mb-2 uppercase italic">Support Request</p>
-                <p className="text-xs font-bold uppercase tracking-widest opacity-60">Beacon Care Liaison</p>
+                <p className="text-3xl font-black mb-2 uppercase italic">{isEmergencyActive ? 'SOS ACTIVE' : 'Medical SOS'}</p>
+                <p className="text-xs font-bold uppercase tracking-widest opacity-60 italic">{isEmergencyActive ? 'Help is on the way' : 'Dispatches Ambulance Immediately'}</p>
               </button>
             </div>
           </section>

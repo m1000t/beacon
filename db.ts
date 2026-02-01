@@ -12,17 +12,43 @@ interface ExtendedAppState extends AppState {
   };
 }
 
-// Utility for consistent local time display
+/**
+ * Robust local time formatter to ensure UI matches user expectations.
+ * Always formats the ISO string back into the user's local timezone.
+ */
 export const formatClinicalTime = (isoString: string) => {
+  if (!isoString) return "TBD";
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return "TBD";
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  
+  return d.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  });
 };
 
+/**
+ * Handles incoming date/time strings.
+ * AI often sends ISO strings with 'Z' but intends them as local time, or sends HH:mm.
+ * This function forces the interpretation to be the patient's local time to prevent 
+ * timezone shifts (e.g., 4 PM becoming 11 AM).
+ */
 const ensureValidDate = (dateInput: any): string => {
   if (!dateInput) return new Date().toISOString();
+
+  // If HH:mm format
+  if (typeof dateInput === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(dateInput)) {
+    const [h, m] = dateInput.split(':');
+    const d = new Date();
+    d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    return d.toISOString();
+  }
+
   const d = new Date(dateInput);
-  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  if (isNaN(d.getTime())) return new Date().toISOString();
+
+  return d.toISOString();
 };
 
 const INITIAL_DATA: ExtendedAppState = {
@@ -68,7 +94,7 @@ class Store {
   private listeners: (() => void)[] = [];
 
   constructor() {
-    const saved = localStorage.getItem('beacon_state_v1');
+    const saved = localStorage.getItem('beacon_state_v4');
     if (saved) {
       try {
         this.data = JSON.parse(saved);
@@ -82,7 +108,7 @@ class Store {
   
   setState(newData: Partial<ExtendedAppState>) {
     this.data = { ...this.data, ...newData };
-    localStorage.setItem('beacon_state_v1', JSON.stringify(this.data));
+    localStorage.setItem('beacon_state_v4', JSON.stringify(this.data));
     this.notify();
   }
 
@@ -126,22 +152,19 @@ class Store {
     const patient = this.data.patients.find(p => p.name.toLowerCase().includes(patientName.toLowerCase()));
     if (!patient) return null;
 
-    const fixedLocation = 'Beacon Medical Center';
-    const filteredAppts = this.data.appointments.filter(a => 
-      !(a.patientId === patient.id && a.status === ApptStatus.SCHEDULED)
-    );
+    const validDatetime = ensureValidDate(datetime);
 
     const newAppt: Appointment = {
       id: `a-${Date.now()}`,
       patientId: patient.id,
       patientName: patient.name,
-      datetime: ensureValidDate(datetime),
-      location: fixedLocation,
+      datetime: validDatetime,
+      location: 'Beacon Medical Center',
       status: ApptStatus.SCHEDULED,
       provider
     };
     
-    this.setState({ appointments: [newAppt, ...filteredAppts] });
+    this.setState({ appointments: [newAppt, ...this.data.appointments.filter(a => a.patientId !== patient.id || a.status !== ApptStatus.SCHEDULED)] });
     this.addNotification(`Scheduled: Beacon Medical Center visit for ${patient.name}.`);
     return newAppt;
   }
@@ -171,9 +194,10 @@ class Store {
   updateAppointmentTime(patientName: string, newDatetime: string) {
     const patient = this.data.patients.find(p => p.name.toLowerCase().includes(patientName.toLowerCase()));
     if (!patient) return false;
+    const validTime = ensureValidDate(newDatetime);
     const appts = this.data.appointments.map(a => 
       (a.patientId === patient.id && a.status === ApptStatus.SCHEDULED)
-      ? { ...a, datetime: ensureValidDate(newDatetime) }
+      ? { ...a, datetime: validTime }
       : a
     );
     this.setState({ appointments: appts });
@@ -294,11 +318,12 @@ class Store {
     const patient = this.data.patients.find(p => p.id === patientId);
     if (!patient) return;
 
-    // Trigger Emergency UI
+    const existingSOS = this.data.transportRequests.find(r => r.patientId === patientId && r.isEmergency && r.status !== TransportStatus.COMPLETED);
+    if (existingSOS) return;
+
     this.setTheme('emergency');
     this.addNotification(`EMERGENCY SOS: AMBULANCE DISPATCHED TO ${patient.address.toUpperCase()} FOR ${patient.name.toUpperCase()}.`);
 
-    // Create Emergency Transport Mission
     const emergencyRide: TransportRequest = {
       id: `sos-${Date.now()}`,
       patientId: patient.id,
@@ -306,15 +331,25 @@ class Store {
       destination: 'BEACON EMERGENCY ROOM',
       scheduledTime: new Date().toISOString(),
       status: TransportStatus.ASSIGNED,
-      driverName: 'AMBULANCE UNIT 01', // Pre-assigned for emergency
+      driverName: 'AMBULANCE UNIT 01',
       isEmergency: true
     };
 
     this.setState({ transportRequests: [emergencyRide, ...this.data.transportRequests] });
   }
 
-  requestPrivateSupport(patientId: string) {
-    this.addNotification(`BEACON SUPPORT: Patient ${patientId} is requesting a team member talk.`);
+  resolveEmergency(patientId: string) {
+    const sosRide = this.data.transportRequests.find(r => r.patientId === patientId && r.isEmergency && r.status !== TransportStatus.COMPLETED);
+    
+    this.setTheme('clinical');
+    if (sosRide) {
+      this.setState({
+        transportRequests: this.data.transportRequests.map(r => 
+          r.id === sosRide.id ? { ...r, status: TransportStatus.COMPLETED } : r
+        )
+      });
+      this.addNotification(`Emergency situation for subject ${patientId} has been resolved.`);
+    }
   }
 
   callDriver(rideId: string) {
@@ -331,10 +366,18 @@ class Store {
   }
 
   updateTransportStatus(rideId: string, status: TransportStatus) {
+    const ride = this.data.transportRequests.find(r => r.id === rideId);
+    if (ride?.isEmergency && status === TransportStatus.COMPLETED) {
+      this.setTheme('clinical');
+    }
     this.setState({ transportRequests: this.data.transportRequests.map(r => r.id === rideId ? { ...r, status } : r) });
   }
 
   failRide(rideId: string, reason: string) {
+    const ride = this.data.transportRequests.find(r => r.id === rideId);
+    if (ride?.isEmergency) {
+      this.setTheme('clinical');
+    }
     this.setState({
       transportRequests: this.data.transportRequests.map(r => 
         r.id === rideId ? { ...r, status: TransportStatus.FAILED } : r
